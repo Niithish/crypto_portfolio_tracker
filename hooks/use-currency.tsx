@@ -53,15 +53,6 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
         setLoading(false)
       } catch (error) {
         console.error('Error fetching exchange rates:', error)
-        // Fallback rates if API fails
-        setExchangeRates({
-          USD: 1,
-          EUR: 0.85,
-          GBP: 0.73,
-          INR: 74.5,
-          CAD: 1.25
-        })
-        setLoading(false)
       }
     }
 

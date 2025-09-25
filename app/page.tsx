@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -52,33 +52,46 @@ export default function CryptoPortfolio() {
   const { isDarkMode, setIsDarkMode } = useTheme()
 
   useEffect(() => {
-    loadPortfolio()
-    fetchCoins()
-  }, [currency])
-
-  const loadPortfolio = () => {
     const saved = localStorage.getItem('cryptoPortfolio')
     if (saved) {
-      setPortfolio(JSON.parse(saved))
+      try {
+        setPortfolio(JSON.parse(saved))
+      } catch (error) {
+        console.error('Error parsing saved portfolio:', error)
+      }
     }
-  }
+  }, [])
 
   const savePortfolio = (holdings: PortfolioHolding[]) => {
     localStorage.setItem('cryptoPortfolio', JSON.stringify(holdings))
     setPortfolio(holdings)
   }
 
-  const fetchCoins = async () => {
+  const fetchCoins = useCallback(async () => {
     try {
       const response = await fetch(
-        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency.toLowerCase()}&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h`
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency.toLowerCase()}&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h`,
+        { cache: 'no-store' }
       )
-      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch coins: ${response.status} ${response.statusText}`)
+      }
+
+      const data: Coin[] = await response.json()
       setCoins(data)
+      setSelectedCoin((previous) => {
+        if (!previous) return previous
+        return data.find((coin) => coin.id === previous.id) ?? null
+      })
     } catch (error) {
       console.error('Error fetching coins:', error)
     }
-  }
+  }, [currency])
+
+  useEffect(() => {
+    fetchCoins()
+  }, [fetchCoins])
 
   const addCoin = () => {
     if (selectedCoin && amount && purchasePrice) {
